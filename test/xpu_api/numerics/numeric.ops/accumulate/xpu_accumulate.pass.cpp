@@ -1,5 +1,4 @@
-// -*- C++ -*-
-//===-- accumulate.pass.cpp --------------------------------------------===//
+//===-- accumulate.pass.cpp -----------------------------------------------===//
 //
 // Copyright (C) Intel Corporation
 //
@@ -13,61 +12,70 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <oneapi/dpl/numeric>
 #include <iostream>
 
 #include <CL/sycl.hpp>
-#include <oneapi/dpl/numeric>
 
 #include "support/test_iterators.h"
 
 constexpr cl::sycl::access::mode sycl_read = cl::sycl::access::mode::read;
 constexpr cl::sycl::access::mode sycl_write = cl::sycl::access::mode::write;
 
-template <class T> class KernelTest;
+template <class T>
+class KernelTest;
 
-template <typename _T1, typename _T2> void ASSERT_EQUAL(_T1 &&X, _T2 &&Y) {
-  if (X != Y)
-    std::cout << "CHECK CORRECTNESS (STL WITH SYCL): fail (" << X << "," << Y
-              << ")" << std::endl;
+template <typename _T1, typename _T2>
+void
+ASSERT_EQUAL(_T1&& X, _T2&& Y)
+{
+    if (X != Y)
+        std::cout << "CHECK CORRECTNESS (STL WITH SYCL): fail (" << X << "," << Y << ")" << std::endl;
 }
 
-template <class Iter> void test() {
-  cl::sycl::queue deviceQueue;
-  int input[6] = {1, 2, 3, 4, 5, 6};
-  int output[7] = {};
-  cl::sycl::range<1> numOfItems1{6};
-  cl::sycl::range<1> numOfItems2{7};
+template <class Iter>
+void
+test()
+{
+    cl::sycl::queue deviceQueue;
+    int input[6] = {1, 2, 3, 4, 5, 6};
+    int output[7] = {};
+    cl::sycl::range<1> numOfItems1{6};
+    cl::sycl::range<1> numOfItems2{7};
 
-  {
-    cl::sycl::buffer<int, 1> buffer1(input, numOfItems1);
-    cl::sycl::buffer<int, 1> buffer2(output, numOfItems2);
-    deviceQueue.submit([&](cl::sycl::handler &cgh) {
-      auto in = buffer1.get_access<sycl_read>(cgh);
-      auto out = buffer2.get_access<sycl_write>(cgh);
-      cgh.single_task<KernelTest<Iter>>([=]() {
-        out[0] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0]), 0);
-        out[1] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0]), 10);
-        out[2] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 1), 0);
-        out[3] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 1), 10);
-        out[4] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 2), 0);
-        out[5] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 2), 10);
-        out[6] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 6), 0);
-      });
-    });
-  }
-  int ref[7] = {0, 10, 1, 11, 3, 13, 21};
-  // check data
-  for (int i = 0; i < 7; ++i) {
-    ASSERT_EQUAL(ref[i], output[i]);
-  }
+    {
+        cl::sycl::buffer<int, 1> buffer1(input, numOfItems1);
+        cl::sycl::buffer<int, 1> buffer2(output, numOfItems2);
+        deviceQueue.submit([&](cl::sycl::handler& cgh) {
+            auto in = buffer1.get_access<sycl_read>(cgh);
+            auto out = buffer2.get_access<sycl_write>(cgh);
+            cgh.single_task<KernelTest<Iter>>([=]() {
+                out[0] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0]), 0);
+                out[1] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0]), 10);
+                out[2] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 1), 0);
+                out[3] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 1), 10);
+                out[4] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 2), 0);
+                out[5] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 2), 10);
+                out[6] = oneapi::dpl::accumulate(Iter(&in[0]), Iter(&in[0] + 6), 0);
+            });
+        });
+    }
+    int ref[7] = {0, 10, 1, 11, 3, 13, 21};
+    // check data
+    for (int i = 0; i < 7; ++i)
+    {
+        ASSERT_EQUAL(ref[i], output[i]);
+    }
 }
 
-int main() {
-  test<input_iterator<const int *>>();
-  test<forward_iterator<const int *>>();
-  test<bidirectional_iterator<const int *>>();
-  test<random_access_iterator<const int *>>();
-  test<const int *>();
-  std::cout << "done" << std::endl;
-  return 0;
+int
+main()
+{
+    test<input_iterator<const int*>>();
+    test<forward_iterator<const int*>>();
+    test<bidirectional_iterator<const int*>>();
+    test<random_access_iterator<const int*>>();
+    test<const int*>();
+    std::cout << "done" << std::endl;
+    return 0;
 }
